@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
-import 'dart:io';
+import 'camerascreen.dart'; // Added import for CameraScreen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,126 +20,85 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Camera',
+      title: 'Text Extractor',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.teal,
       ),
-      home: CameraScreen(camera: camera),
+      home: MainPage(camera: camera),
     );
   }
 }
 
-class CameraScreen extends StatefulWidget {
+class MainPage extends StatelessWidget {
   final CameraDescription camera;
 
-  const CameraScreen({required this.camera});
-
-  @override
-  _CameraScreenState createState() => _CameraScreenState();
-}
-
-class _CameraScreenState extends State<CameraScreen> {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-  final TextRecognizer textRecognizer = GoogleMlKit.vision.textRecognizer();
-  String extractedText = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = CameraController(
-      widget.camera,
-      ResolutionPreset.high,
-    );
-    _initializeControllerFuture = _controller.initialize();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    textRecognizer.close();
-    super.dispose();
-  }
-
-  Future<void> _takePicture() async {
-    try {
-      await _initializeControllerFuture;
-
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath =
-          '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.png';
-
-      // Capture the image and save it
-      await _controller.takePicture().then((XFile file) async {
-        await file.saveTo(filePath);
-        print('Picture saved to $filePath');
-
-        // Clear previous text
-        setState(() {
-          extractedText = '';
-        });
-
-        // Extract text from the image
-        await _extractTextFromImage(File(filePath));
-      });
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  Future<void> _extractTextFromImage(File imageFile) async {
-    final inputImage = InputImage.fromFile(imageFile);
-
-    // Process the image using the TextRecognizer
-    final RecognizedText recognizedText =
-        await textRecognizer.processImage(inputImage);
-
-    setState(() {
-      extractedText = recognizedText.text;
-    });
-  }
+  const MainPage({Key? key, required this.camera}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Camera App'),
+        title: Text('Text Extractor'),
       ),
-      body: FutureBuilder<void>(
-        future: _initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return Stack(
-              children: [
-                CameraPreview(_controller),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: ElevatedButton(
-                      onPressed: _takePicture,
-                      child: Icon(Icons.camera_alt, size: 50),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.teal.shade400, Colors.teal.shade200],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.camera_alt, size: 100, color: Colors.white),
+              SizedBox(height: 20),
+              Text(
+                'Welcome to Text Extractor!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+              Text(
+                'This app lets you extract text from images captured using your camera. '
+                'You can also copy the extracted text to your clipboard.',
+                style: TextStyle(fontSize: 16, color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 30),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  backgroundColor:
+                      Colors.white, // Set background color to white
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CameraScreen(camera: camera),
                     ),
+                  );
+                },
+                child: Text(
+                  'Get Started',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.teal, // Set text color to red
                   ),
                 ),
-                // Display the extracted text
-                if (extractedText.isNotEmpty)
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        extractedText,
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          } else {
-            return Center(child: CircularProgressIndicator());
-          }
-        },
+              )
+            ],
+          ),
+        ),
       ),
     );
   }
